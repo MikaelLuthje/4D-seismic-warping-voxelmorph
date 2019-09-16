@@ -155,8 +155,10 @@ def miccai2018_net(vol_size, enc_nf, dec_nf, int_steps=7, use_miccai_int=False, 
     flow_log_sigma = Conv(ndims, kernel_size=3, padding='same',
                             kernel_initializer=RandomNormal(mean=0.0, stddev=1e-10),
                             bias_initializer=keras.initializers.Constant(value=-10),
-                            name='log_sigma')(x_out)
-    flow_params = concatenate([flow_mean, flow_log_sigma])
+                            name='log_sigma')(x_out)    
+    flow_mean_r = trf_resize(flow_mean, vel_resize, name='upflow_mean')
+    flow_log_sigma_r = trf_resize(flow_log_sigma, vel_resize, name='upflow_sigma')
+    flow_params = concatenate([flow_mean_r, flow_log_sigma_r])
 
     # velocity sample
     flow = Sample(name="z_sample")([flow_mean, flow_log_sigma])

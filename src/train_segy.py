@@ -15,7 +15,7 @@ import tensorflow as tf
 import numpy as np
 from keras.backend.tensorflow_backend import set_session
 from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint, CSVLogger, TerminateOnNaN
+from keras.callbacks import ModelCheckpoint, CSVLogger, TerminateOnNaN, ReduceLROnPlateau, EarlyStopping
 
 # project imports
 import datagenerators
@@ -40,6 +40,7 @@ def train(data_dir,
           batch_size,
           load_model_file,
           bidir,
+          bool_cc,
           initial_epoch=0):
     """
     model training function
@@ -55,13 +56,16 @@ def train(data_dir,
     :param batch_size: Optional, default of 1. can be larger, depends on GPU memory and volume size
     :param load_model_file: optional h5 model file to initialize with
     :param bidir: logical whether to use bidirectional cost function
+    :param bool_cc: Train CC or MICCAI version
     """
     
     # load atlas from provided files. The atlas we used is 160x192x224.
     #atlas_vol = np.load(atlas_file)['vol'][np.newaxis, ..., np.newaxis]
     vm_dir = '/home/jdram/voxelmorph/'
-    base    = np.load(os.path.join(vm_dir, "data","ts12_dan_a88_fin_o_trim_adpc_002661_abs.npy"))
-    monitor = np.load(os.path.join(vm_dir, "data","ts12_dan_a05_fin_o_trim_adpc_002682_abs.npy"))
+    base    = np.load(os.path.join(vm_dir, "data","ts12_dan_a88_fin_o_trim_adpc_002661.npy"))
+    monitor = np.load(os.path.join(vm_dir, "data","ts12_dan_a05_fin_o_trim_adpc_002682.npy"))
+    #base    = np.load(os.path.join(vm_dir, "data","ts12_dan_a88_fin_o_trim_adpc_002661_abs.npy"))
+    #monitor = np.load(os.path.join(vm_dir, "data","ts12_dan_a05_fin_o_trim_adpc_002682_abs.npy"))
     vol_size = (64, 64, 64)
     # prepare data files
     # for the CVPR and MICCAI papers, we have data arranged in train/validate/test folders
@@ -72,13 +76,22 @@ def train(data_dir,
     #assert len(train_vol_names) > 0, "Could not find any training data"
 
     # Diffeomorphic network architecture used in MICCAI 2018 paper
-    nf_enc = [16,32,32,32]
-    nf_dec = [32,32,32,32,16,3]
+    nf_enc = [32,64,64,64]
+    nf_dec = [64,64,64,64,32,3]
 
     # prepare model folder
     if not os.path.isdir(model_dir):
         os.mkdir(model_dir)
     tf.reset_default_graph()
+
+    if bool_cc:
+        pre_net = "cc_"
+    else:
+        if bidir:
+            pre_net = "miccai_bidir_"
+        else:
+            pre_net = "miccai_"
+
 
     # gpu handling
     gpu = '/device:GPU:%d' % int(gpu_id) # gpu_id
@@ -88,57 +101,64 @@ def train(data_dir,
     config.allow_soft_placement = True
     set_session(tf.Session(config=config))
 
+    # prepare the model
     with tf.device(gpu):
         # prepare the model
-        # the MICCAI201 model takes in [image_1, image_2] and outputs [warped_image_1, velocity_stats]
-        # in these experiments, we use image_2 as atlas
-        model = networks.miccai2018_net(vol_size, nf_enc, nf_dec, bidir=bidir)
+        # in the CVPR layout, the model takes in [image_1, image_2] and outputs [warped_image_1, flow]
+        # in the experiments, we use image_2 as atlas
+        if bool_cc:
+            model = networks.cvpr2018_net(vol_size, nf_enc, nf_dec)
+        else:
+            model = networks.miccai2018_net(vol_size, nf_enc, nf_dec, bidir=bidir)  
+
 
         # load initial weights
         if load_model_file is not None and load_model_file != "":
+            print('loading', load_model_file)
             model.load_weights(load_model_file)
 
         # save first iteration
-        model.save(os.path.join(model_dir, 'miccai_%02d.h5' % initial_epoch))
+        model.save(os.path.join(model_dir, f'{pre_net}{initial_epoch:02d}.h5'))
         model.summary()
-        # compile
-        # note: best to supply vol_shape here than to let tf figure it out.
-        flow_vol_shape = model.outputs[-1].shape[1:-1]
-        loss_class = losses.Miccai2018(image_sigma, prior_lambda, flow_vol_shape=flow_vol_shape)
-        if bidir:
-            model_losses = [loss_class.recon_loss, loss_class.recon_loss, loss_class.kl_loss]
-            loss_weights = [0.5, 0.5, 1]
-        else:
-            model_losses = [loss_class.recon_loss, loss_class.kl_loss]
-            loss_weights = [1, 1]
-        
-    
-    # data generator
 
-    #train_example_gen = datagenerators.example_gen(train_vol_names, batch_size=batch_size)
-    #atlas_vol_bs = np.repeat(atlas_vol, batch_size, axis=0)
-    #miccai2018_gen = datagenerators.miccai2018_gen(train_example_gen,
-    #                                               atlas_vol_bs,
-    #                                               batch_size=batch_size,
-    #                                               bidir=bidir)
+        if bool_cc:
+            model_losses = [losses.NCC().loss, losses.Grad('l2').loss]
+            loss_weights = [1.0, 0.01]  # recommend 1.0 for ncc, 0.01 for mse
+        else:
+            flow_vol_shape = model.outputs[-1].shape[1:-1]
+            loss_class = losses.Miccai2018(image_sigma, prior_lambda, flow_vol_shape=flow_vol_shape)
+            if bidir:
+                model_losses = [loss_class.recon_loss, loss_class.recon_loss, loss_class.kl_loss]
+                loss_weights = [0.5, 0.5, 1]
+            else:
+                model_losses = [loss_class.recon_loss, loss_class.kl_loss]
+                loss_weights = [1, 1]
+
     segy_gen = datagenerators.segy_gen(base, monitor, batch_size=batch_size)
 
     # prepare callbacks
-    save_file_name = os.path.join(model_dir, '{epoch:02d}.h5')
+    save_file_name = os.path.join(model_dir, pre_net+'{epoch:02d}.h5')
 
     with tf.device(gpu):
         # fit generator
         save_callback = ModelCheckpoint(save_file_name)
-        csv_cb = CSVLogger('miccai_log.csv')
+        csv_cb = CSVLogger(f'{pre_net}log.csv')
         nan_cb = TerminateOnNaN()
+        rlr_cb = ReduceLROnPlateau(monitor='loss', verbose=1)
+        els_cb = EarlyStopping(monitor='loss', patience=25, verbose=1, restore_best_weights=True)
+        cbs = [save_callback, csv_cb, nan_cb, rlr_cb, els_cb]
         mg_model = model
 
+        # compile
         mg_model.compile(optimizer=Adam(lr=lr), loss=model_losses, loss_weights=loss_weights)
+
+
+            
         mg_model.fit([base, monitor],[monitor, np.zeros_like(base)], 
                      initial_epoch=initial_epoch,
                      batch_size=32,
                      epochs=nb_epochs,
-                     callbacks=[save_callback, csv_cb, nan_cb],
+                     callbacks=cbs,
                      #steps_per_epoch=steps_per_epoch,
                      verbose=1)
 
@@ -183,9 +203,9 @@ if __name__ == "__main__":
     parser.add_argument("--initial_epoch", type=int,
                         dest="initial_epoch", default=0,
                         help="first epoch")
-    parser.add_argument("--initial_epoch", type=bool,
-                        dest="initial_epoch", default=True,
-                        help="Train MICCAI diffeomorphism version?")
+    parser.add_argument("--cc", type=bool,
+                        dest="bool_cc", default=False,
+                        help="Train MICCAI diffeomorphism version or CC.")
 
     args = parser.parse_args()
     train(**vars(args))

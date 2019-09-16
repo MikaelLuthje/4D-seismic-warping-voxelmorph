@@ -19,7 +19,7 @@ def cutup(data, blck, strd):
 for filename in glob.iglob("../data/*.sgy"):
     start_time = time()
     numpy_path = filename[:-3]+"npy"
-    abs_path = filename[:-4]+"_abs.npy"
+    cube_path = filename[:-4]+"_cube.npy"
     print(f"=== Converting {filename[:-4].split('/')[-1]} ===")
     print("Opening file")
     with segyio.open(filename, 'r', strict=False) as segy:
@@ -56,13 +56,12 @@ for filename in glob.iglob("../data/*.sgy"):
     i, j, k = (64, 64, 64) # Batch Dimension
     s_i, s_j, s_k = (2, 2, 1.2) # Strides
     y = cutup(out, (i, j, k), (int(i/s_i), int(j/s_j), int(k/s_k))).reshape(-1 , i, j, k, 1)
-    del out
     print(f" - in {time() - f_time:.2f} seconds")
-    y_abs = np.abs(y)
+    
     print("Saving File")
     f_time = time()
     np.save(numpy_path, y)
-    np.save(abs_path, y_abs)
+    np.save(cube_path, out)
     print(f" - in {time() - f_time:.2f} seconds")
 
     print("Testing Load")
@@ -71,8 +70,8 @@ for filename in glob.iglob("../data/*.sgy"):
     np.testing.assert_array_equal(y,z)
     del y
     del z
-    z = np.load(abs_path)
-    np.testing.assert_array_equal(y_abs,z)
+    z = np.load(cube_path)
+    np.testing.assert_array_equal(out,z)
     del z 
     print(f" - in {time() - f_time:.2f} seconds")
     print("--- --- ---")
