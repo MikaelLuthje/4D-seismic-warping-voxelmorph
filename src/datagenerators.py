@@ -59,6 +59,39 @@ def miccai2018_gen_s2s(gen, batch_size=1, bidir=False):
         else:
             yield ([X, Y], [Y, zeros])
 
+def segy_gen(base, monitor, batch_size=1):
+    """
+    generate examples
+
+    Parameters:
+        vol_names: a list or tuple of filenames
+        batch_size: the size of the batch (default: 1)
+
+        The following are fairly specific to our data structure, please change to your own
+        return_segs: logical on whether to return segmentations
+        seg_dir: the segmentations directory.
+        np_var: specify the name of the variable in numpy files, if your data is stored in 
+            npz files. default to 'vol_data'
+    """
+
+    while True:
+        idxes = np.random.randint(base.shape[0], size=batch_size)
+
+        X_data = []
+        Y_data = []
+        for idx in idxes:
+            X_data.append(base[idx,:,:,:,:])
+            Y_data.append(monitor[idx,:,:,:,:])
+
+        if batch_size > 1:
+            X = [np.concatenate(X_data, 0)]
+            Y = [np.concatenate(Y_data, 0)]
+        else:
+            X = [X_data[0]]
+            Y = [Y_data[0]]
+
+        yield ([X, Y], [Y, np.zeros_like(X)])
+
 
 def example_gen(vol_names, batch_size=1, return_segs=False, seg_dir=None, np_var='vol_data'):
     """

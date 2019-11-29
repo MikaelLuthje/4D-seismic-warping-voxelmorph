@@ -212,7 +212,7 @@ class Miccai2018():
         log_sigma = y_pred[..., ndims:]
         if self.flow_vol_shape is None:
             # Note: this might not work in multi_gpu mode if vol_shape is not apriori passed in
-            self.flow_vol_shape = y_true.get_shape().as_list()[1:-1]
+            self.flow_vol_shape = y_pred.get_shape().as_list()[1:-1]
 
         # compute the degree matrix (only needs to be done once)
         # we usually can't compute this until we know the ndims, 

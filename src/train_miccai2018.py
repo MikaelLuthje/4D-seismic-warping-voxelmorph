@@ -149,7 +149,7 @@ def train(data_dir,
 if __name__ == "__main__":
     parser = ArgumentParser()
 
-    parser.add_argument("data_dir", type=str,
+    parser.add_argument("--data_dir", type=str, default='../data',
                         help="data folder")
 
     parser.add_argument("--atlas_file", type=str,
