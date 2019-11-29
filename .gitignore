@@ -1,2 +1,6 @@
 __pycache__/
 scratch/*
+*.h5
+*.npy
+*.sgy
+*.csv
