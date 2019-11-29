@@ -99,27 +99,3 @@ moved = np.load("moved.npy")
 moving = np.load("moving.npy")
 fixed = np.load("fixed.npy")
 warped = np.load("warped.npy")
-
-#%%
-#if __name__ == "__main__":
-#    parser = ArgumentParser()
-#    
-#    # positional arguments
-#    parser.add_argument("moving", type=str, default=None,
-#                        help="moving file name")
-#    parser.add_argument("fixed", type=str, default=None,
-#                        help="fixed file name")##
-#
-#    # optional arguments
-#    parser.add_argument("--model_file", type=str,
-#                        dest="model_file", default='../models/cvpr2018_vm1_cc.h5',
-#                        help="models h5 file")
-#    parser.add_argument("--gpu", type=int, default=None,
-#                        dest="gpu_id", help="gpu id number")
-#    parser.add_argument("--out_img", type=str, default=None,
-#                        dest="out_img", help="output image file name")
-#    parser.add_argument("--out_warp", type=str, default=None,
-##                        dest="out_warp", help="output warp file name")
-#
-#    args = parser.parse_args()
-#    register(**vars(args))
