@@ -78,6 +78,15 @@ def register(gpu_id, mov, fix, model_file, out_img, out_warp):
 
     return moved, warp
 
+def plt_commons(title, ix, cbar_label=None, pre='x', name='x', w=0, suff=''):
+    plt.title(title.title())
+    plt.ylabel('Time [s]')
+    plt.xlabel(f'{ix} [m]')
+    if cbar_label:
+        cbar = plt.colorbar(pad=0.1, orientation="horizontal", aspect=20)
+        cbar.set_label(cbar_label)
+    plt.savefig(f'{pre}_{ix}_{title}_{w}{suff}.png'.replace(' ','_').lower(), bbox_inches='tight')
+
 def warp_results(moving, fixed, moved, warped, pre='x'):
     """
     Warp Results and plot on CPU
@@ -108,21 +117,16 @@ def warp_results(moving, fixed, moved, warped, pre='x'):
     
     warp_ut = np.max([np.abs(warped[0, 32, :, :, 2]), \
             np.abs(warped[0, :, 32, :, 2])])
+
+    diff = np.max([np.abs(moving[0, 32, :, :, 0]-fixed[0, 32, :, :, 0]).max(), \
+        np.abs(moved[0, 32, :, :, 0]-fixed[0, 32, :, :, 0]).max(), \
+    ])
     
     for name, dat in {'monitor': moving, 'base': fixed, 'matched': moved, 'warp': warped}.items():
         extent = (0,64*12.5, (256-64)*.004, 0)
         plt_size= (3,9)
 
         plt_args = {'extent':extent, 'aspect':'auto', 'interpolation':'bicubic'}
-
-        def plt_commons(title, ix, cbar_label=None, pre='x', suff=''):
-            plt.title(title.title())
-            plt.ylabel('Time [s]')
-            plt.xlabel(f'{ix} [m]')
-            if cbar_label:
-                cbar = plt.colorbar(pad=0.1, orientation="horizontal", aspect=20)
-                cbar.set_label(cbar_label)
-            plt.savefig(f'{pre}_{ix}_{name}_{w}{suff}.png'.replace(' ','_').lower(), bbox_inches='tight')
         
         for w in range(dat.shape[-1]):
             
@@ -130,34 +134,35 @@ def warp_results(moving, fixed, moved, warped, pre='x'):
                 cmap = 'RdBu'
         
                 if dat.shape[-1] == 1:
-                    va = seis
+                    va = diff
                     cb = 'Amplitude'
 
                     # Difference Images
                     if not 'base' in name:
                         plt.figure(figsize=plt_size)
                         plt.imshow(dat[0, 32, :, :, w].T-fixed[0, 32, :, :, w].T, cmap=cmap, vmin=-va, vmax=va, **plt_args) 
-                        plt_commons(name+' difference', 'crossline', cb, pre=pre, suff='_diff')
+                        plt_commons(name+' difference', 'inline', cb, pre=pre, name=name, w=w, suff='_diff')
 
                         plt.figure(figsize=plt_size)
                         plt.imshow(dat[0, :, 32, :, w].T-fixed[0, :, 32, :, w].T, cmap=cmap, vmin=-va, vmax=va, **plt_args) 
-                        plt_commons(name+' difference', 'crossline', cb, pre=pre, suff='_diff')
+                        plt_commons(name+' difference', 'crossline', cb, pre=pre, name=name, w=w, suff='_diff')
+                    va = seis
                 
                 else:
                     va = warp_u
                     cb = 'Spatial Shift [m]'
                     if w == 2:
                         va = warp_ut
-                        cb = 'Time Shift [s]'
+                        cb = 'Time Shift [ms]'
                 
                 # Intentionally left unindented
                 plt.figure(figsize=plt_size)
                 plt.imshow(dat[0, 32, :, :, w].T, cmap=cmap, vmin=-va, vmax=va, **plt_args) 
-                plt_commons(name, 'inline', cb, pre=pre)
+                plt_commons(name, 'inline', cb, pre=pre, name=name, w=w)
         
                 plt.figure(figsize=plt_size)
                 plt.imshow(dat[0, :, 32, :, w].T, cmap=cmap, vmin=-va, vmax=va, **plt_args) 
-                plt_commons(name, 'crossline', cb, pre=pre)
+                plt_commons(name, 'crossline', cb, pre=pre, name=name, w=w)
 
             else:
                 cmap = 'viridis'
@@ -169,11 +174,11 @@ def warp_results(moving, fixed, moved, warped, pre='x'):
                 
                 plt.figure(figsize=plt_size)
                 plt.imshow(dat[0, 32, :, :, w].T,cmap=cmap, **plt_args)
-                plt_commons(name, 'inline', cb, pre=pre)
+                plt_commons(name, 'inline', cb, pre=pre, name=name, w=w)
 
                 plt.figure(figsize=plt_size)
                 plt.imshow(dat[0, :, 32, :, w].T,cmap=cmap, **plt_args)
-                plt_commons(name, 'crossline', cb, pre=pre)
+                plt_commons(name, 'crossline', cb, pre=pre, name=name, w=w)
 
             if w == 0:
                 np.save(f'{name}_{pre}.npy', dat)
@@ -181,8 +186,31 @@ def warp_results(moving, fixed, moved, warped, pre='x'):
 
 #%%
 vm_dir = '/home/jdram/voxelmorph/'
-base    = np.load(os.path.join(vm_dir, "data","ts12_dan_a88_fin_o_trim_adpc_002661_cube.npy"))
+model_path = "/home/jdram/voxelmorph/models/backup/miccai_300_full_deep.h5" #64x64x192 full unet
+#model_path = "/home/jdram/voxelmorph/models/backup/miccai_e290_64-64-192_upsample.h5" #64x64x192 upsampled
+
+monitor_hfd = np.load(os.path.join("/", "scratch", "jdram", "voxelmorph", "halfdan", "ts12_hfd_h05_fin_o_trim_adpc_002582_cube.npy"))
+base_hfd    = np.load(os.path.join("/", "scratch", "jdram", "voxelmorph", "halfdan", "ts12_hfd_h93_fin_o_trim_adpc_002568_cube.npy"))
+
+#k = 350
+#p = 850
+#q = 475
+k = 350
+p = 200
+q = 475
+moving = monitor_hfd[np.newaxis, k-32:k+32,p:p+64,q:q+256-64,np.newaxis]
+fixed  =    base_hfd[np.newaxis,k-32:k+32,p:p+64,q:q+256-64,np.newaxis]
+
+#%%
+moved, warped = register(None, moving, fixed, model_path, None, None)
+
+#%%
+warp_results(moving,fixed,moved,warped,'hfd')
+
+#%%
+
 monitor = np.load(os.path.join(vm_dir, "data","ts12_dan_a05_fin_o_trim_adpc_002682_cube.npy"))
+base    = np.load(os.path.join(vm_dir, "data","ts12_dan_a88_fin_o_trim_adpc_002661_cube.npy"))
 
 k=225
 q=350
@@ -192,7 +220,7 @@ moving = monitor[np.newaxis, k-32:k+32,p:p+64,q:q+256-64,np.newaxis]
 fixed  =    base[np.newaxis,k-32:k+32,p:p+64,q:q+256-64,np.newaxis]
 
 #%%
-moved, warped = register(None, moving, fixed, "/home/jdram/voxelmorph/models/backup/miccai_300_full_deep.h5", None, None)
+moved, warped = register(None, moving, fixed, model_path, None, None)
 
 #%%
 
@@ -212,7 +240,7 @@ moving = monitor2[np.newaxis, k-32:k+32,p:p+64,q:q+256-64,np.newaxis]
 fixed  =    base2[np.newaxis,k-32:k+32,p:p+64,q:q+256-64,np.newaxis]
 
 #%%
-moved, warped = register(None, moving, fixed, "/home/jdram/voxelmorph/models/backup/miccai_300_full_deep.h5", None, None)
+moved, warped = register(None, moving, fixed, model_path, None, None)
 
 #%%
 warp_results(moving,fixed,moved,warped,'d')
@@ -222,10 +250,29 @@ moving = monitor2[np.newaxis, k-32:k+32,p:p+64,q:q+256-64,np.newaxis]
 fixed  =    monitor[np.newaxis,k-32:k+32,p:p+64,q:q+256-64,np.newaxis]
 
 #%%
-moved, warped = register(None, moving, fixed, "/home/jdram/voxelmorph/models/backup/miccai_300_full_deep.h5", None, None)
+moved, warped = register(None, moving, fixed, model_path, None, None)
 
 #%%
 warp_results(moving,fixed,moved,warped,'ad')
+
+
+#maersk    = np.load(os.path.join(vm_dir, "data","ta12sa_dan_fin_shis_b05m88_ewto_005577.npy"))
+#
+#m_i = maersk[0, 32, :, :, 0]
+#m_x = maersk[0, :, 32, :, 0]
+#
+#extent = (0,64*12.5, (256-64)*.004, 0)
+#plt_size= (3,9)
+#plt_args = {'extent':extent, 'aspect':'auto', 'interpolation':'bicubic'}
+#cb = 'Time Shift [ms]'               
+#
+#va = np.max([np.abs(m_i), np.abs(m_x)])
+#plt.figure(figsize=plt_size)
+#plt.imshow(m_i.T, cmap='RdBu', vmin=-va, vmax=va, **plt_args) 
+#plt_commons('time shift', 'inline', cb, pre='maersk')
+#plt.figure(figsize=plt_size)
+#plt.imshow(m_x.T, cmap='RdBu', vmin=-va, vmax=va, **plt_args) 
+#plt_commons('time shift', 'crossline', cb, pre='maersk')
 
 #moved = np.load("moved.npy")
 #moving = np.load("moving.npy")

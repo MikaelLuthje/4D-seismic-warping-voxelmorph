@@ -18,7 +18,7 @@ def cutup(data, blck, strd):
 
 for filename in glob.iglob("../data/*.sgy"):
     start_time = time()
-    numpy_path = filename[:-3]+"npy"
+    numpy_path = filename[:-4]+"_256.npy"
     cube_path = filename[:-4]+"_cube.npy"
     print(f"=== Converting {filename[:-4].split('/')[-1]} ===")
     print("Opening file")
@@ -53,7 +53,7 @@ for filename in glob.iglob("../data/*.sgy"):
     
     print("Reshaping Data to Batches")
     f_time = time()
-    i, j, k = (64, 64, 64) # Batch Dimension
+    i, j, k = (64, 64, 256-64) # Batch Dimension
     s_i, s_j, s_k = (2, 2, 1.2) # Strides
     y = cutup(out, (i, j, k), (int(i/s_i), int(j/s_j), int(k/s_k))).reshape(-1 , i, j, k, 1)
     print(f" - in {time() - f_time:.2f} seconds")

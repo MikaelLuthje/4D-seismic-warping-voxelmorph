@@ -62,11 +62,15 @@ def train(data_dir,
     # load atlas from provided files. The atlas we used is 160x192x224.
     #atlas_vol = np.load(atlas_file)['vol'][np.newaxis, ..., np.newaxis]
     vm_dir = '/home/jdram/voxelmorph/'
-    base    = np.load(os.path.join(vm_dir, "data","ts12_dan_a88_fin_o_trim_adpc_002661.npy"))
-    monitor = np.load(os.path.join(vm_dir, "data","ts12_dan_a05_fin_o_trim_adpc_002682.npy"))
+    base    = np.load(os.path.join(vm_dir, "data","ts12_dan_a88_fin_o_trim_adpc_002661_256.npy"))
+    monitor = np.load(os.path.join(vm_dir, "data","ts12_dan_a05_fin_o_trim_adpc_002682_256.npy"))
     #base    = np.load(os.path.join(vm_dir, "data","ts12_dan_a88_fin_o_trim_adpc_002661_abs.npy"))
     #monitor = np.load(os.path.join(vm_dir, "data","ts12_dan_a05_fin_o_trim_adpc_002682_abs.npy"))
-    vol_size = (64, 64, 64)
+    
+    #vol_size = (64, 64, 64)
+    vol_size = (64, 64, 256-64)
+    #vol_size = (128, 128, 256)
+    
     # prepare data files
     # for the CVPR and MICCAI papers, we have data arranged in train/validate/test folders
     # inside each folder is a /vols/ and a /asegs/ folder with the volumes
@@ -109,7 +113,7 @@ def train(data_dir,
         if bool_cc:
             model = networks.cvpr2018_net(vol_size, nf_enc, nf_dec)
         else:
-            model = networks.miccai2018_net(vol_size, nf_enc, nf_dec, bidir=bidir)  
+            model = networks.miccai2018_net(vol_size, nf_enc, nf_dec, bidir=bidir, vel_resize=.5)  
 
 
         # load initial weights
@@ -141,11 +145,11 @@ def train(data_dir,
 
     with tf.device(gpu):
         # fit generator
-        save_callback = ModelCheckpoint(save_file_name)
+        save_callback = ModelCheckpoint(save_file_name, period=5)
         csv_cb = CSVLogger(f'{pre_net}log.csv')
         nan_cb = TerminateOnNaN()
         rlr_cb = ReduceLROnPlateau(monitor='loss', verbose=1)
-        els_cb = EarlyStopping(monitor='loss', patience=25, verbose=1, restore_best_weights=True)
+        els_cb = EarlyStopping(monitor='loss', patience=15, verbose=1, restore_best_weights=True)
         cbs = [save_callback, csv_cb, nan_cb, rlr_cb, els_cb]
         mg_model = model
 
@@ -156,7 +160,7 @@ def train(data_dir,
             
         mg_model.fit([base, monitor],[monitor, np.zeros_like(base)], 
                      initial_epoch=initial_epoch,
-                     batch_size=32,
+                     batch_size=8,
                      epochs=nb_epochs,
                      callbacks=cbs,
                      #steps_per_epoch=steps_per_epoch,
@@ -180,7 +184,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float,
                         dest="lr", default=1e-4, help="learning rate")
     parser.add_argument("--epochs", type=int,
-                        dest="nb_epochs", default=1500,
+                        dest="nb_epochs", default=350,
                         help="number of iterations")
     parser.add_argument("--prior_lambda", type=float,
                         dest="prior_lambda", default=10,
