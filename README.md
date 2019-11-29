@@ -57,76 +57,47 @@ In the original MICCAI code, the parameters were applied after the scaling of th
 
 ## Spatial Transforms and Integration
 
-- The spatial transform code, found at [`neuron.layers.SpatialTransform`](https://github.com/adalca/neuron/blob/master/neuron/layers.py), accepts N-dimensional affine and dense transforms, including linear and nearest neighbor interpolation options. Note that original development of VoxelMorph used `xy` indexing, whereas we are now emphasizing `ij` indexing.
+The spatial transform code, found at [`neuron.layers.SpatialTransform`](https://github.com/adalca/neuron/blob/master/neuron/layers.py), accepts N-dimensional affine and dense transforms, including linear and nearest neighbor interpolation options.
 
-- For the MICCAI2018 version, we integrate the velocity field using [`neuron.layers.VecInt`]((https://github.com/adalca/neuron/blob/master/neuron/layers.py)). By default we integrate using scaling and squaring, which we found efficient.
+For the MICCAI2018 version, the velocity field was integrated using [`neuron.layers.VecInt`]((https://github.com/adalca/neuron/blob/master/neuron/layers.py)). By default we integrate using scaling and squaring.
 
-# VoxelMorph Papers
+# Papers
 
+#### Deep Unsupervised 4D Seismic 3D Time-Shift Estimation with Convolutional Neural Networks
+[Dramsch, J. S.](https://dramsch.net), [Christensen, A. N.](https://www.dtu.dk/service/telefonbog/person?id=36350), [MacBeth, C.](https://researchportal.hw.ac.uk/en/persons/colin-macbeth), & [Lüthje, M](https://www.dtu.dk/english/service/phonebook/person?id=11047).
+eprint EarthArxiv:82bnj. (2019, October 31). [10.31223/osf.io/82bnj](https://doi.org/10.31223/osf.io/82bnj).
+
+## Voxelmorph
 If you use voxelmorph or some part of the code, please cite (see [bibtex](citations.bib)):
 
-  * For the diffeomorphic or probabilistic model:
+### Diffeomorphic Probabalistic
+For the diffeomorphic or probabilistic model:
 
-    **Unsupervised Learning of Probabilistic Diffeomorphic Registration for Images and Surfaces**  
+#### Unsupervised Learning of Probabilistic Diffeomorphic Registration for Images and Surfaces
 [Adrian V. Dalca](http://adalca.mit.edu), [Guha Balakrishnan](http://people.csail.mit.edu/balakg/), [John Guttag](https://people.csail.mit.edu/guttag/), [Mert R. Sabuncu](http://sabuncu.engineering.cornell.edu/)  
+
 MedIA: Medial Image Analysis. 2019. [eprint arXiv:1903.03545](https://arxiv.org/abs/1903.03545) 
 
-    **Unsupervised Learning for Fast Probabilistic Diffeomorphic Registration**  
+#### Unsupervised Learning for Fast Probabilistic Diffeomorphic Registration
 [Adrian V. Dalca](http://adalca.mit.edu), [Guha Balakrishnan](http://people.csail.mit.edu/balakg/), [John Guttag](https://people.csail.mit.edu/guttag/), [Mert R. Sabuncu](http://sabuncu.engineering.cornell.edu/)  
 MICCAI 2018. [eprint arXiv:1805.04605](https://arxiv.org/abs/1805.04605)
 
 
 
-* For the original CNN model, MSE, CC, or segmentation-based losses:
+### Original CNN
+For the original CNN model, MSE, CC, or segmentation-based losses:
 
-    **VoxelMorph: A Learning Framework for Deformable Medical Image Registration**  
+#### VoxelMorph: A Learning Framework for Deformable Medical Image Registration
 [Guha Balakrishnan](http://people.csail.mit.edu/balakg/), [Amy Zhao](http://people.csail.mit.edu/xamyzhao/), [Mert R. Sabuncu](http://sabuncu.engineering.cornell.edu/), [John Guttag](https://people.csail.mit.edu/guttag/), [Adrian V. Dalca](http://adalca.mit.edu)  
 IEEE TMI: Transactions on Medical Imaging. 2019. 
 [eprint arXiv:1809.05231](https://arxiv.org/abs/1809.05231)
 
-    **An Unsupervised Learning Model for Deformable Medical Image Registration**  
-[Guha Balakrishnan](http://people.csail.mit.edu/balakg/), [Amy Zhao](http://people.csail.mit.edu/xamyzhao/), [Mert R. Sabuncu](http://sabuncu.engineering.cornell.edu/), [John Guttag](https://people.csail.mit.edu/guttag/), [Adrian V. Dalca](http://adalca.mit.edu)  
+#### An Unsupervised Learning Model for Deformable Medical Image Registration
+[Guha Balakrishnan](http://people.csail.mit.edu/balakg/), [Amy Zhao](http://people.csail.mit.edu/xamyzhao/), [Mert R. Sabuncu](http://sabuncu.engineering.cornell.edu/), [John Guttag](https://people.csail.mit.edu/guttag/), [Adrian V. Dalca](http://adalca.mit.edu) 
+
 CVPR 2018. [eprint arXiv:1802.02604](https://arxiv.org/abs/1802.02604)
 
 # Notes on Data
-In our initial papers, we used publically available data, but unfortunately we cannot redistribute it (due to the constraints of those datasets). We do a certain amount of pre-processing for the brain images we work with, to eliminate sources of variation and be able to compare algorithms on a level playing field. In particular, we perform FreeSurfer `recon-all` steps up to skull stripping and affine normalization to Talairach space, and crop the images via `((48, 48), (31, 33), (3, 29))`. 
+This Paper is based on confidential 4D seismic data, which unfortunately can not be provided with this repository.
 
-We encourage users to download and process their own data. See [a list of medical imaging datasets here](https://github.com/adalca/medical-datasets). Note that you likely do not need to perform all of the preprocessing steps, and indeed VoxelMorph has been used in other work with other data.
-
-
-# Creation of Deformable Templates
-
-We present a template consturction method in this [preprint](https://arxiv.org/abs/1908.02738): 
-
-  *  **Learning Conditional Deformable Templates with Convolutional Networks**  
-[Adrian V. Dalca](http://adalca.mit.edu), Marianne Rakic, [John Guttag](https://people.csail.mit.edu/guttag/), [Mert R. Sabuncu](http://sabuncu.engineering.cornell.edu/)  
-[eprint arXiv:1908.02738](https://arxiv.org/abs/1908.02738) 2019
-
-To experiment with this method, please use `train_img_template.py` for unconditional templates and `train_cond_template.py` for conditional templates, which use the same conventions as voxelmorph (please note that these files are less polished than the rest of the voxelmorph library).
-
-We've also provided an unconditional atlas in `/data/uncond_atlas_creation_k.npy`. 
-
-Models in h5 format weights are provided for [unconditional atlas here](http://people.csail.mit.edu/adalca/voxelmorph/atlas_creation_uncond_NCC_1500.h5), and [conditional atlas here](http://people.csail.mit.edu/adalca/voxelmorph/atlas_creation_cond_NCC_1022.h5).
-
-**Explore the atlases [interactively here](http://voxelmorph.mit.edu/atlas_creation/)** with tipiX!
-
-
-# Unified Segmentation
-
-We recently published a method on deep learning methods for unsupervised segmentation that makes use of voxelmorph infrastructure. See the [unified seg README for more information](unified_seg/README.md).
-
-
-
-# Significant Updates
-2019-08-08: Added support for building templates
-2019-04-27: Added support for unified segmentation  
-2019-01-07: Added example register.py file
-2018-11-10: Added support for multi-gpu training  
-2018-10-12: Significant overhaul of code, especially training scripts and new model files.  
-2018-09-15: Added MICCAI2018 support and py3 transition  
-2018-05-14: Initial Repository for CVPR version, py2.7
-
-
-
-# Contact:
-For any problems or questions please [open an issue](https://github.com/voxelmorph/voxelmorph/issues/new?labels=voxelmorph) in github.  
+To perform your own experiments, please use the file `src/convert_seismic.py` to obtain 3D patches from segy files. The file also standardizes the data to work with Voxelmorph. You may be able to work on the available [Volve dataset](https://www.equinor.com/en/news/14jun2018-disclosing-volve-data.html) for hydrocarbon production data or [Sleipnir dataset](https://www.sintef.no/en/projects/co2-storage-data-consortium-sharing-data-from-co2-storage-projects/) for CCS data.
