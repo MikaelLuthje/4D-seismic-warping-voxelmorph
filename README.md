@@ -1,74 +1,49 @@
-# voxelmorph
-Unsupervised Learning with CNNs for Image Registration  
-This repository incorporates several variants, first presented at CVPR2018 (initial unsupervised learning) and then MICCAI2018  (probabilistic & diffeomorphic formulation)
+# Deep Unsupervised 4D Seismic 3D Time-Shift Estimation with Convolutional Neural Networks
+This code is a fork of the medical [https://github.com/voxelmorph/voxelmorph](Voxelmorph) code from MIT released under the GPL license. Check out their repo for implementation details and more information, as well as further developments.
 
-keywords: machine learning, convolutional neural networks, alignment, mapping, registration
+![Full Voxelmorph Architecture](architecture.png)
+
+This way of warping seismic images uses a CNN at it's core to extract the warping vectors but leaves the warping to a non-learning transformation layer. This ensures that amplitudes are preserved. The diffeomorphic implementation ensures that the warp field does not introduce crossing reflectors to "find an optimal fit", which is called topology-preserving. This is merging machine learning math and geological intuition to provide minial but working constraints.
+
+Read the full preprint on [EarthArxiv](https://eartharxiv.org/82bnj/).
 
 # Instructions
-
+This is very much research code. We apologize.
 ## Setup
-It might be useful to have each folder inside the `ext` folder on your python path. 
-assuming voxelmorph is setup at `/path/to/voxelmorph/`:
+In the case you cloned this repository, you have to set up the resources as follows (Unix-based systems):
 
 ```
 export PYTHONPATH=$PYTHONPATH:/path/to/voxelmorph/ext/neuron/:/path/to/voxelmorph/ext/pynd-lib/:/path/to/voxelmorph/ext/pytools-lib/
 ```
 
-If you would like to train/test your own model, you will likely need to write some of the data loading code in 'datagenerator.py' for your own datasets and data formats. There are several hard-coded elements related to data preprocessing and format. 
-
+You have to replace `/path/to/voxelmorph/`. Generate the right command using `src/path.py`. 
 
 ## Training
-These instructions are for the MICCAI2018 variant using `train_miccai2018.py`.  
-If you'd like to run the CVPR version (no diffeomorphism or uncertainty measures, and using CC/MSE as a loss function) use `train.py`
+The training was done using `src/train_segy.py`, it uses two in-memory numpy array, which are hardcoded in the training file. Adjust these accordingly. Afterwards you can run the code with:
 
-1. Change the top parameters in `train_miccai2018.py` to the location of your image files.
-2. Run `train_miccai2018.py` with options described in the main function at the bottom of the file. Example:  
-```
-train_miccai2018.py /my/path/to/data --gpu 0 --model_dir /my/path/to/save/models 
-```
+    python train_segy.py
 
-In our experiments, `/my/path/to/data` contains one `npz` file for each subject saved in the variable `vol_data`.
+There are several useful parameters (with defaults) such as:
 
-We provide a T1 brain atlas used in our papers at `data/atlas_norm.npz`.
+    --data_dir "/path/to/your/data/"
+    --model_dir "/path/to/your/model/"
+    --gpu "0"    # With your gpu id
+    --lr 1e-4    # Providf a different learning rate
+    --epochs 350 # Number of iterations
 
-## Testing (measuring Dice scores)
-1. Put test filenames in data/test_examples.txt, and anatomical labels in data/test_labels.mat.
-2. Run `python test_miccai2018.py [gpu-id] [model_dir] [iter-num]`
-
-
-## Registration
-If you simply want to register two images:
-1. Choose the appropriate model, or train your own.
-2. Use `register.py`. For example, Let's say we have a model trained to register subject (moving) to atlas (fixed). One could run:
-```
-python register.py --gpu 0 /path/to/test_vol.nii.gz /path/to/atlas_norm.nii.gz --out_img /path/to/out.nii.gz --model_file ../models/cvpr2018_vm2_cc.h5 
-```
-## Parameter choices
-
-### CVPR version
-For the CC loss function, we found a reg parameter of 1 to work best. For the MSE loss function, we found 0.01 to work best.
-
-### MICCAI version
-
-For our data, we found `image_sigma=0.01` and `prior_lambda=25` to work best.
-
-In the original MICCAI code, the parameters were applied after the scaling of the velocity field. With the newest code, this has been "fixed", with different default parameters reflecting the change. We recommend running the updated code. However, if you'd like to run the very original MICCAI2018 mode, please use `xy` indexing and `use_miccai_int` network option, with MICCAI2018 parameters.
-
-
-## Spatial Transforms and Integration
-
-The spatial transform code, found at [`neuron.layers.SpatialTransform`](https://github.com/adalca/neuron/blob/master/neuron/layers.py), accepts N-dimensional affine and dense transforms, including linear and nearest neighbor interpolation options.
-
-For the MICCAI2018 version, the velocity field was integrated using [`neuron.layers.VecInt`]((https://github.com/adalca/neuron/blob/master/neuron/layers.py)). By default we integrate using scaling and squaring.
+## Warping
+The warping is done in the `src/register_segy.py`, again with hardcoded files. Adjust accordingly.
 
 # Papers
+These are resulting papers from this work. Please cite accordingly (see [bibtex](citations.bib))
 
 #### Deep Unsupervised 4D Seismic 3D Time-Shift Estimation with Convolutional Neural Networks
 [Dramsch, J. S.](https://dramsch.net), [Christensen, A. N.](https://www.dtu.dk/service/telefonbog/person?id=36350), [MacBeth, C.](https://researchportal.hw.ac.uk/en/persons/colin-macbeth), & [Lüthje, M](https://www.dtu.dk/english/service/phonebook/person?id=11047).
+
 eprint EarthArxiv:82bnj. (2019, October 31). [10.31223/osf.io/82bnj](https://doi.org/10.31223/osf.io/82bnj).
 
 ## Voxelmorph
-If you use voxelmorph or some part of the code, please cite (see [bibtex](citations.bib)):
+If you use voxelmorph or some part of the code:
 
 ### Diffeomorphic Probabalistic
 For the diffeomorphic or probabilistic model:
@@ -81,8 +56,6 @@ MedIA: Medial Image Analysis. 2019. [eprint arXiv:1903.03545](https://arxiv.org/
 #### Unsupervised Learning for Fast Probabilistic Diffeomorphic Registration
 [Adrian V. Dalca](http://adalca.mit.edu), [Guha Balakrishnan](http://people.csail.mit.edu/balakg/), [John Guttag](https://people.csail.mit.edu/guttag/), [Mert R. Sabuncu](http://sabuncu.engineering.cornell.edu/)  
 MICCAI 2018. [eprint arXiv:1805.04605](https://arxiv.org/abs/1805.04605)
-
-
 
 ### Original CNN
 For the original CNN model, MSE, CC, or segmentation-based losses:
