@@ -69,7 +69,7 @@ If you use voxelmorph or some part of the code, please cite (see [bibtex](citati
 
     **Unsupervised Learning of Probabilistic Diffeomorphic Registration for Images and Surfaces**  
 [Adrian V. Dalca](http://adalca.mit.edu), [Guha Balakrishnan](http://people.csail.mit.edu/balakg/), [John Guttag](https://people.csail.mit.edu/guttag/), [Mert R. Sabuncu](http://sabuncu.engineering.cornell.edu/)  
-Under Review. ArXiv 2019. [eprint arXiv:1903.03545](https://arxiv.org/abs/1903.03545) 
+MedIA: Medial Image Analysis. 2019. [eprint arXiv:1903.03545](https://arxiv.org/abs/1903.03545) 
 
     **Unsupervised Learning for Fast Probabilistic Diffeomorphic Registration**  
 [Adrian V. Dalca](http://adalca.mit.edu), [Guha Balakrishnan](http://people.csail.mit.edu/balakg/), [John Guttag](https://people.csail.mit.edu/guttag/), [Mert R. Sabuncu](http://sabuncu.engineering.cornell.edu/)  
@@ -94,6 +94,23 @@ In our initial papers, we used publically available data, but unfortunately we c
 We encourage users to download and process their own data. See [a list of medical imaging datasets here](https://github.com/adalca/medical-datasets). Note that you likely do not need to perform all of the preprocessing steps, and indeed VoxelMorph has been used in other work with other data.
 
 
+# Creation of Deformable Templates
+
+We present a template consturction method in this [preprint](https://arxiv.org/abs/1908.02738): 
+
+  *  **Learning Conditional Deformable Templates with Convolutional Networks**  
+[Adrian V. Dalca](http://adalca.mit.edu), Marianne Rakic, [John Guttag](https://people.csail.mit.edu/guttag/), [Mert R. Sabuncu](http://sabuncu.engineering.cornell.edu/)  
+[eprint arXiv:1908.02738](https://arxiv.org/abs/1908.02738) 2019
+
+To experiment with this method, please use `train_img_template.py` for unconditional templates and `train_cond_template.py` for conditional templates, which use the same conventions as voxelmorph (please note that these files are less polished than the rest of the voxelmorph library).
+
+We've also provided an unconditional atlas in `/data/uncond_atlas_creation_k.npy`. 
+
+Models in h5 format weights are provided for [unconditional atlas here](http://people.csail.mit.edu/adalca/voxelmorph/atlas_creation_uncond_NCC_1500.h5), and [conditional atlas here](http://people.csail.mit.edu/adalca/voxelmorph/atlas_creation_cond_NCC_1022.h5).
+
+**Explore the atlases [interactively here](http://voxelmorph.mit.edu/atlas_creation/)** with tipiX!
+
+
 # Unified Segmentation
 
 We recently published a method on deep learning methods for unsupervised segmentation that makes use of voxelmorph infrastructure. See the [unified seg README for more information](unified_seg/README.md).
@@ -101,6 +118,7 @@ We recently published a method on deep learning methods for unsupervised segment
 
 
 # Significant Updates
+2019-08-08: Added support for building templates
 2019-04-27: Added support for unified segmentation  
 2019-01-07: Added example register.py file
 2018-11-10: Added support for multi-gpu training  
@@ -111,5 +129,4 @@ We recently published a method on deep learning methods for unsupervised segment
 
 
 # Contact:
-For any problems or questions please [open an issue](https://github.com/voxelmorph/voxelmorph/issues/new?labels=voxelmorph) in github (preferred).  
-Alternatively, please contact us at voxelmorph@mit.edu, but our response might be slower through this route.
+For any problems or questions please [open an issue](https://github.com/voxelmorph/voxelmorph/issues/new?labels=voxelmorph) in github.  
